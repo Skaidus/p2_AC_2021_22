@@ -1,0 +1,4 @@
+# Project exclude paths
+/pi/cmake-build-debug/
+/hello/cmake-build-debug/
+/.idea/
