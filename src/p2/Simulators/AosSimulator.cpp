@@ -1,3 +1,4 @@
+
 //
 // Created by Usuario on 10/10/2021.
 //
@@ -5,6 +6,7 @@
 //imports
 #include "Simulator.hpp"
 #include "../Point/Point.cpp"
+#include <omp.h>
 
 using namespace std;
 
@@ -77,8 +79,10 @@ public:
     void run(const int iterations) override {
         for (auto l = 0; l < iterations; l++) {
             for (unsigned int  i = 0; i < objs; i++) {
+#pragma omp parallel for default(none) shared(i, points)
                 for (auto j = i + 1; j < objs; j++) points[i].addForce(points[j]);
             }
+#pragma omp parallel for default(none) shared(dt,points)
             for (auto &p: points) {
                 p.move(dt);
                 checkBounds(p);
@@ -95,3 +99,4 @@ inline std::ostream &operator<<(std::ostream &os, const AosSimulator &s) {
     for (auto &p: s.points) os << p << '\n';
     return os;
 }
+#pragma clang diagnostic pop
