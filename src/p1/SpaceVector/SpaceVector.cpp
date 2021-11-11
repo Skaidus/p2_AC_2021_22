@@ -26,6 +26,8 @@ public:
     }
 
 
+
+
     inline SpaceVector &operator-=(const SpaceVector v) {
         this->x -= v.x;
         this->y -= v.y;

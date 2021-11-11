@@ -1,7 +1,6 @@
 //
 // Created by Usuario on 10/13/2021.
 //
-/*
 
 #include <chrono>
 #include "Parsing/Parsing.cpp"
@@ -34,8 +33,8 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-*/
 
+/*
 #include "Parsing/Parsing.cpp"
 #include "./Simulators/AosSimulator.cpp"
 #include <iostream>
@@ -60,3 +59,4 @@ int main(int argc, char **argv) {
     final << soa << '\n';
     return 0;
 }
+*/

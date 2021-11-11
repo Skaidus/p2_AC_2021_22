@@ -13,6 +13,7 @@ public:
     SpaceVector pos; // Position of the point in the space
     SpaceVector vel; // Velocity of the point in a specific moment
     SpaceVector forcesum; // Sum of the forces of all points
+    bool invalid{false};
     double mass{}; // Mass of the point
     double mass_inv{}; // Inverse to save up time
 
@@ -32,11 +33,8 @@ public:
     // Functions
 
     // Absorbs particle
-    inline Point &operator+=(Point p) {
-        vel += p.vel;
-        mass += p.mass;
+    inline void  update_mass_inv() {
         mass_inv = 1 / mass;
-        return *this;
     }
 
     inline void move(double time) {

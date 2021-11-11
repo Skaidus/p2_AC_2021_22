@@ -10,22 +10,36 @@
 
 using namespace std;
 
-
 class AosSimulator : public Simulator {
 private:
     void checkCollisions() override {
-        for (unsigned int i = 0; i < objs; i++) {
-            for (unsigned int  j = i + 1; j < objs;) {
-                if (Point::collide(points[i], points[j])) {
-                    points[i] += points[j];
-                    objs--;
-                    points[j] = points[objs];
-                } else {
-                    j++;
+        for (unsigned int i = 0; i < objs;) {
+            if (points[i].invalid) {
+                objs--;
+                points[i] = points[objs];
+            } else {
+                auto xSum = 0;
+                auto ySum = 0;
+                auto zSum = 0;
+                auto massSum = 0;
+#pragma omp parallel for schedule(static) num_threads(8) reduction(+:xSum, ySum, zSum, massSum)
+                for (unsigned int j = i + 1; j < objs; j++) {
+                    if (Point::collide(points[i], points[j])) {
+                        xSum += points[j].vel.x;
+                        ySum += points[j].vel.y;
+                        zSum += points[j].vel.z;
+                        massSum += points[j].mass;
+                        points[j].invalid = true;
+                    }
                 }
+                points[i].vel += SpaceVector(xSum,ySum,zSum);
+                points[i].mass += massSum;
+                points[i].update_mass_inv();
+                i++;
             }
-            while (points.size() != objs) points.pop_back();
+
         }
+        while (points.size() != objs) points.pop_back();
     }
 
     inline void checkBounds(Point &p) {
@@ -59,6 +73,7 @@ public:
     std::vector<Point> points;
 
     AosSimulator(int objs, int seed, double size, double dt) {
+
         this->objs = objs;
         this->size = size;
         this->dt = dt;
@@ -78,14 +93,26 @@ public:
 
     void run(const int iterations) override {
         for (auto l = 0; l < iterations; l++) {
+#pragma omp parallel for schedule(static) num_threads(8)
             for (unsigned int  i = 0; i < objs; i++) {
-#pragma omp parallel for default(none) shared(i, points)
-                for (auto j = i + 1; j < objs; j++) points[i].addForce(points[j]);
+                SpaceVector sum {0};
+                for (auto j = i + 1; j < objs; j++){
+                    points[i].addForce(points[j]);
+                    auto force_vec = (points[j].pos - points[i].pos);
+                    auto force_vec_prod = force_vec.dotProduct();
+                    force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
+                    auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
+                    sum += force_ij;
+                    points[j].forcesum -= force_ij;
+                }
+# pragma omp critical
+                points[i].forcesum += sum;
+
             }
-#pragma omp parallel for default(none) shared(dt,points)
-            for (auto &p: points) {
-                p.move(dt);
-                checkBounds(p);
+#pragma omp parallel for schedule(static) num_threads(8)
+            for (unsigned int  i = 0; i < objs; i++) {
+                points[i].move(dt);
+                checkBounds(points[i]);
             }
             checkCollisions();
         }
@@ -99,4 +126,3 @@ inline std::ostream &operator<<(std::ostream &os, const AosSimulator &s) {
     for (auto &p: s.points) os << p << '\n';
     return os;
 }
-#pragma clang diagnostic pop

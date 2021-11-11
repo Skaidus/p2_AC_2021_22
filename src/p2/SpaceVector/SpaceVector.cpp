@@ -53,6 +53,10 @@ public:
         return {x * s, y * s, z * s};
     }
 
+    SpaceVector operator+(const SpaceVector v) const {
+        return {x + v.x, y + v.y, z + v.z};
+    }
+
     inline SpaceVector operator-(const SpaceVector v) const {
         return {x - v.x, y - v.y, z - v.z};
     }
