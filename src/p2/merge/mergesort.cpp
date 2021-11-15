@@ -8,10 +8,6 @@
 
 using namespace std;
 
-struct {
-    bool operator()(Point a, Point b) const { return (b.order==-1)||(a.pos.x < b.pos.x);}
-} customLess;
-
 template<class Iter>
 void merge_sort(Iter first, Iter last, int threads)
 {
@@ -33,6 +29,6 @@ void merge_sort(Iter first, Iter last, int threads)
             merge_sort(first, middle, 1);
             merge_sort(middle, last, 1);
         }
-        inplace_merge(first, middle, last, customLess);
+        inplace_merge(first, middle, last);
     }
 }
