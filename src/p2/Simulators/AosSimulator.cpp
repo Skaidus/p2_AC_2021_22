@@ -79,20 +79,12 @@ public:
 
     void run(const int iterations) override {
         for (auto l = 0; l < iterations; l++) {
-            unsigned int chunk = points.size()/6;
 # pragma omp parallel num_threads(6)
             {
-                unsigned int thread_id = omp_get_thread_num();
-                unsigned int chunk_l;
-                if(thread_id==5){
-                    chunk_l = points.size();
-                } else {
-                    chunk_l = (thread_id+1) * chunk;
-                }
-                for (unsigned int i = thread_id *chunk; i < chunk_l; i++) {
+#pragma omp for schedule(auto)
+                for (unsigned int i = 0; i < points.size(); i++) {
                     SpaceVector sum{0};
-                    for (auto j = i + 1; j < chunk_l; j++) {
-                        points[i].addForce(points[j]);
+                    for (auto j = i + 1; j < points.size(); j++) {
                         auto force_vec = (points[j].pos - points[i].pos);
                         auto force_vec_prod = force_vec.dotProduct();
                         force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
@@ -100,12 +92,11 @@ public:
                         sum += force_ij;
                         points[j].forcesum -= force_ij;
                     }
-//# pragma omp critical
-//                    points[i].forcesum += sum;
-
+                    points[i].forcesum +=sum;
                 }
 
 # pragma omp barrier
+#pragma omp for schedule(static)
                 for (unsigned int i = 0 ; i < points.size(); i++)  {
                     points[i].move(dt);
                     checkBounds(points[i]);

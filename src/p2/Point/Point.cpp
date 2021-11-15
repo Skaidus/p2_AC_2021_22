@@ -49,13 +49,13 @@ public:
         pos += (vel * time);
     }
 
-    inline void addForce(Point &p) {
+    inline void addForce(const Point &p) {
         auto force_vec = (p.pos - pos);
         auto force_vec_prod = force_vec.dotProduct();
         force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
         auto force_ij = force_vec * ((G * mass * p.mass) / force_vec_prod);
         forcesum += force_ij;
-        p.forcesum -= force_ij;
+        //p.forcesum -= force_ij;
     }
 
     inline static bool real_collide(const Point p1, const Point p2) {
