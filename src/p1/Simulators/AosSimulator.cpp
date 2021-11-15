@@ -71,7 +71,7 @@ public:
             m = nd(gen);
             points.emplace_back(x, y, z, m);
         }
-        checkCollisions();
+        //checkCollisions();
     }
 
     void run(const int iterations) override {

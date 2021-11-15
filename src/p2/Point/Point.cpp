@@ -13,12 +13,15 @@ public:
     SpaceVector pos; // Position of the point in the space
     SpaceVector vel; // Velocity of the point in a specific moment
     SpaceVector forcesum; // Sum of the forces of all points
-    bool invalid{false};
+    int order;
     double mass{}; // Mass of the point
     double mass_inv{}; // Inverse to save up time
 
     // Constructors
-    inline Point(double x, double y, double z, double mass) : pos(x, y, z), mass{mass}, mass_inv{1.0 / mass} {}
+    inline Point(double x, double y, double z, int order, double mass) : pos(x, y, z), order {order}, mass{mass}, mass_inv{1.0 / mass}{}
+
+    // Fusion
+    inline Point(SpaceVector pos, SpaceVector vel,  int order, double mass) : pos{pos}, vel{vel}, order{order}, mass{mass}{}
 
     inline Point(const Point &) = default;
 
@@ -32,9 +35,12 @@ public:
 
     // Functions
 
-    // Absorbs particle
-    inline void  update_mass_inv() {
-        mass_inv = 1 / mass;
+    inline Point operator + (const Point p) const {
+        if (p.order < order) {
+            return {p.pos, p.vel + vel, p.order, p.mass + mass};
+        } else {
+            return {pos, p.vel + vel, order, p.mass + mass};
+        }
     }
 
     inline void move(double time) {
@@ -52,8 +58,19 @@ public:
         p.forcesum -= force_ij;
     }
 
-    inline static bool collide(const Point p1, const Point p2) {
+    inline static bool real_collide(const Point p1, const Point p2) {
         return (p1.pos - p2.pos).dotProduct() < 1;
+    }
+
+    inline static bool collide(const Point p1, const Point p2) {
+        auto prod_x = p1.pos.x - p2.pos.x;
+        prod_x = prod_x * prod_x;
+        if(prod_x>=1) return false;
+        auto prod_y = p1.pos.y - p2.pos.y;
+        prod_y = prod_y * prod_y;
+        auto prod_z = p1.pos.z - p2.pos.z;
+        prod_z = prod_z * prod_z;
+        return prod_x + prod_y + prod_z < 1;
     }
 
 };

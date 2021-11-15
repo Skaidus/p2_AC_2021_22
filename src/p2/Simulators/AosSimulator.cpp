@@ -5,41 +5,34 @@
 
 //imports
 #include "Simulator.hpp"
-#include "../Point/Point.cpp"
+#include "../merge/mergesort.cpp"
 #include <omp.h>
+#include <cmath>
 
 using namespace std;
 
 class AosSimulator : public Simulator {
 private:
     void checkCollisions() override {
-        for (unsigned int i = 0; i < objs;) {
-            if (points[i].invalid) {
-                objs--;
-                points[i] = points[objs];
+        points = mergesort(points, 6);
+        while (points[points.size() - 1].order == -1) points.pop_back();
+        unsigned int chunk = points.size()/6;
+#pragma omp parallel num_threads(6)
+        {
+            unsigned int thread_id = omp_get_thread_num();
+            unsigned int chunk_l;
+            if (thread_id == 5) {
+                chunk_l = points.size();
             } else {
-                auto xSum = 0;
-                auto ySum = 0;
-                auto zSum = 0;
-                auto massSum = 0;
-#pragma omp parallel for schedule(static) num_threads(8) reduction(+:xSum, ySum, zSum, massSum)
-                for (unsigned int j = i + 1; j < objs; j++) {
-                    if (Point::collide(points[i], points[j])) {
-                        xSum += points[j].vel.x;
-                        ySum += points[j].vel.y;
-                        zSum += points[j].vel.z;
-                        massSum += points[j].mass;
-                        points[j].invalid = true;
-                    }
-                }
-                points[i].vel += SpaceVector(xSum,ySum,zSum);
-                points[i].mass += massSum;
-                points[i].update_mass_inv();
-                i++;
+                chunk_l = (thread_id + 1) * chunk;
             }
-
+            for (unsigned int i = thread_id *chunk; i < chunk_l -1 ; i++) {
+                if (Point::collide(points[i], points[i + 1])) {
+                    points[i + 1] = points[i] + points[i + 1];
+                    points[i].order = -1;
+                }
+            }
         }
-        while (points.size() != objs) points.pop_back();
     }
 
     inline void checkBounds(Point &p) {
@@ -86,37 +79,49 @@ public:
             y = ud(gen);
             z = ud(gen);
             m = nd(gen);
-            points.emplace_back(x, y, z, m);
+            points.emplace_back(x, y, z, i, m);
         }
-        checkCollisions();
+        //checkCollisions();
     }
 
     void run(const int iterations) override {
         for (auto l = 0; l < iterations; l++) {
-#pragma omp parallel for schedule(static) num_threads(8)
-            for (unsigned int  i = 0; i < objs; i++) {
-                SpaceVector sum {0};
-                for (auto j = i + 1; j < objs; j++){
-                    points[i].addForce(points[j]);
-                    auto force_vec = (points[j].pos - points[i].pos);
-                    auto force_vec_prod = force_vec.dotProduct();
-                    force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
-                    auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
-                    sum += force_ij;
-                    points[j].forcesum -= force_ij;
+            unsigned int chunk = points.size()/6;
+# pragma omp parallel num_threads(6)
+            {
+                unsigned int thread_id = omp_get_thread_num();
+                unsigned int chunk_l;
+                if(thread_id==5){
+                    chunk_l = points.size();
+                } else {
+                    chunk_l = (thread_id+1) * chunk;
                 }
+                for (unsigned int i = thread_id *chunk; i < chunk_l; i++) {
+                    SpaceVector sum{0};
+                    for (auto j = i + 1; j < chunk_l; j++) {
+                        points[i].addForce(points[j]);
+                        auto force_vec = (points[j].pos - points[i].pos);
+                        auto force_vec_prod = force_vec.dotProduct();
+                        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
+                        auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
+                        sum += force_ij;
+                        points[j].forcesum -= force_ij;
+                    }
 # pragma omp critical
-                points[i].forcesum += sum;
+                    points[i].forcesum += sum;
 
+                }
+
+# pragma omp barrier
+                for (unsigned int i = thread_id *chunk; i < chunk_l; i++)  {
+                    points[i].move(dt);
+                    checkBounds(points[i]);
+                }
             }
-#pragma omp parallel for schedule(static) num_threads(8)
-            for (unsigned int  i = 0; i < objs; i++) {
-                points[i].move(dt);
-                checkBounds(points[i]);
-            }
-            checkCollisions();
+            //checkCollisions();
         }
     }
+
 };
 
 inline std::ostream &operator<<(std::ostream &os, const AosSimulator &s) {
