@@ -12,4 +12,5 @@ add_executable(soa src/p1/soa.cpp src/p1/SpaceVector/SpaceVector.cpp src/p1/Simu
 add_executable(paos src/p2/paos.cpp src/p2/SpaceVector/SpaceVector.cpp src/p2/Simulators/AosSimulator.cpp src/p2/Parsing/Parsing.cpp src/p2/Point/Point.cpp src/p2/Simulators/Simulator.hpp src/p2/merge/mergesort.cpp)
 add_executable(psoa src/p2/psoa.cpp src/p2/SpaceVector/SpaceVector.cpp src/p2/Simulators/SoaSimulator.cpp src/p2/Parsing/Parsing.cpp src/p2/Simulators/Simulator.hpp)
 target_link_libraries(paos PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(aos PUBLIC OpenMP::OpenMP_CXX)
 target_link_libraries(psoa PUBLIC OpenMP::OpenMP_CXX)

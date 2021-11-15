@@ -14,19 +14,12 @@ using namespace std;
 class AosSimulator : public Simulator {
 private:
     void checkCollisions() override {
-        points = mergesort(points, 6);
+        merge_sort(points.begin(), points.end(), 6);
         while (points[points.size() - 1].order == -1) points.pop_back();
-        unsigned int chunk = points.size()/6;
 #pragma omp parallel num_threads(6)
         {
-            unsigned int thread_id = omp_get_thread_num();
-            unsigned int chunk_l;
-            if (thread_id == 5) {
-                chunk_l = points.size();
-            } else {
-                chunk_l = (thread_id + 1) * chunk;
-            }
-            for (unsigned int i = thread_id *chunk; i < chunk_l -1 ; i++) {
+#pragma omp for schedule(static)
+            for (unsigned int i = 0; i < points.size() -1 ; i++) {
                 if (Point::collide(points[i], points[i + 1])) {
                     points[i + 1] = points[i] + points[i + 1];
                     points[i].order = -1;
@@ -81,7 +74,7 @@ public:
             m = nd(gen);
             points.emplace_back(x, y, z, i, m);
         }
-        //checkCollisions();
+        checkCollisions();
     }
 
     void run(const int iterations) override {
@@ -107,18 +100,18 @@ public:
                         sum += force_ij;
                         points[j].forcesum -= force_ij;
                     }
-# pragma omp critical
-                    points[i].forcesum += sum;
+//# pragma omp critical
+//                    points[i].forcesum += sum;
 
                 }
 
 # pragma omp barrier
-                for (unsigned int i = thread_id *chunk; i < chunk_l; i++)  {
+                for (unsigned int i = 0 ; i < points.size(); i++)  {
                     points[i].move(dt);
                     checkBounds(points[i]);
                 }
             }
-            //checkCollisions();
+            checkCollisions();
         }
     }
 

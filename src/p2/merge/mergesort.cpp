@@ -2,82 +2,37 @@
 // Created by Usuario on 11/14/2021.
 //
 
-#include "vector"
+#include <vector>
 #include "../Point/Point.cpp"
+#include <algorithm>
 
 using namespace std;
 
-static vector<Point> merge(const vector<Point>& left, const vector<Point>& right)
+struct {
+    bool operator()(Point a, Point b) const { return (b.order==-1)||(a.pos.x < b.pos.x);}
+} customLess;
+
+template<class Iter>
+void merge_sort(Iter first, Iter last, int threads)
 {
-    vector<Point> result;
-    unsigned left_it = 0, right_it = 0;
-
-    while(left_it < left.size() && right_it < right.size())
-    {
-        if(left[left_it].pos.x < right[right_it].pos.x || right[right_it].order == -1)
-        {
-            result.push_back(left[left_it]);
-            left_it++;
-        }
-        else
-        {
-            result.push_back(right[right_it]);
-            right_it++;
-        }
-    }
-
-    // Push the remaining data from both vectors onto the resultant
-    while(left_it < left.size())
-    {
-        result.push_back(left[left_it]);
-        left_it++;
-    }
-
-    while(right_it < right.size())
-    {
-        result.push_back(right[right_it]);
-        right_it++;
-    }
-
-    return result;
-}
-
-static vector<Point> mergesort(vector<Point>& vec, int threads)
-{
-    // Termination condition: List is completely sorted if it
-    // only contains a single element.
-    if(vec.size() == 1)
-    {
-        return vec;
-    }
-
-    // Determine the location of the middle element in the vector
-    auto middle = vec.begin() + (vec.size() / 2);
-
-    vector<Point> left(vec.begin(), middle);
-    vector<Point> right(middle, vec.end());
-
-    // Perform a merge sort on the two smaller vectors
-
-    if (threads > 1)
-    {
+    if(last - first > 1){
+        Iter middle = first + (last - first) / 2;
+        if (threads > 1){
 #pragma omp parallel sections
-        {
-#pragma omp section
             {
-                left = mergesort(left, threads/2);
-            }
 #pragma omp section
-            {
-                right = mergesort(right, threads - threads/2);
+                {
+                    merge_sort(first, middle, threads/2);
+                }
+#pragma omp section
+                {
+                    merge_sort(middle, last, threads - threads/2);
+                }
             }
+        } else {
+            merge_sort(first, middle, 1);
+            merge_sort(middle, last, 1);
         }
+        inplace_merge(first, middle, last, customLess);
     }
-    else
-    {
-        left = mergesort(left, 1);
-        right = mergesort(right, 1);
-    }
-
-    return merge(left, right);
 }
