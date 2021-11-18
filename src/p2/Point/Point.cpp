@@ -13,15 +13,15 @@ public:
     SpaceVector pos; // Position of the point in the space
     SpaceVector vel; // Velocity of the point in a specific moment
     SpaceVector forcesum; // Sum of the forces of all points
-    int order;
+    bool invalid{false};
     double mass{}; // Mass of the point
     double mass_inv{}; // Inverse to save up time
 
     // Constructors
-    inline Point(double x, double y, double z, int order, double mass) : pos(x, y, z), order {order}, mass{mass}, mass_inv{1.0 / mass}{}
+    inline Point(double x, double y, double z,  double mass) : pos(x, y, z), mass{mass}, mass_inv{1.0 / mass}{}
 
     // Fusion
-    inline Point(SpaceVector pos, SpaceVector vel,  int order, double mass) : pos{pos}, vel{vel}, order{order}, mass{mass}{}
+    inline Point(SpaceVector pos, SpaceVector vel, double mass) : pos{pos}, vel{vel}, mass{mass}{}
 
     inline Point(const Point &) = default;
 
@@ -35,12 +35,12 @@ public:
 
     // Functions
 
-    inline Point operator + (const Point p) const {
-        if (p.order < order) {
-            return {p.pos, p.vel + vel, p.order, p.mass + mass};
-        } else {
-            return {pos, p.vel + vel, order, p.mass + mass};
-        }
+    inline Point &operator+=(Point p) {
+        vel += p.vel;
+        mass += p.mass;
+        mass_inv = 1 / mass;
+        p.invalid=true;
+        return *this;
     }
 
     inline void move(double time) {
@@ -49,30 +49,18 @@ public:
         pos += (vel * time);
     }
 
-    inline void addForce(const Point &p) {
+    inline void addForce(Point &p) {
         auto force_vec = (p.pos - pos);
         auto force_vec_prod = force_vec.dotProduct();
         force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
         auto force_ij = force_vec * ((G * mass * p.mass) / force_vec_prod);
         forcesum += force_ij;
-        //p.forcesum -= force_ij;
-    }
-
-    inline static bool real_collide(const Point p1, const Point p2) {
-        return (p1.pos - p2.pos).dotProduct() < 1;
+        p.forcesum -= force_ij;
     }
 
     inline static bool collide(const Point p1, const Point p2) {
-        auto prod_x = p1.pos.x - p2.pos.x;
-        prod_x = prod_x * prod_x;
-        if(prod_x>=1) return false;
-        auto prod_y = p1.pos.y - p2.pos.y;
-        prod_y = prod_y * prod_y;
-        auto prod_z = p1.pos.z - p2.pos.z;
-        prod_z = prod_z * prod_z;
-        return prod_x + prod_y + prod_z < 1;
+        return (p1.pos - p2.pos).dotProduct() < 1;
     }
-
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Point &p) {

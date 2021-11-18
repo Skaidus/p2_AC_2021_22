@@ -14,18 +14,27 @@ using namespace std;
 class AosSimulator : public Simulator {
 private:
     void checkCollisions() override {
-        merge_sort(points.begin(), points.end(), 6);
-        while (points[points.size() - 1].order == -1) points.pop_back();
-#pragma omp parallel num_threads(6)
-        {
-#pragma omp for schedule(static)
-            for (unsigned int i = 0; i < points.size() -1 ; i++) {
-                if (Point::collide(points[i], points[i + 1])) {
-                    points[i + 1] = points[i] + points[i + 1];
-                    points[i].order = -1;
+        merge_sort(x_axis.begin(), x_axis.end(), 6);
+        vector <unsigned int> trash[6];
+
+#pragma omp parallel for schedule(static) num_threads(6)
+            for (unsigned int i = 0; i < x_axis.size() -1 ; i++) {
+                if(x_axis[i].value-x_axis[i+1].value==0){
+                    auto j = x_axis[i].index;
+                    auto k = x_axis[i+1].index;
+                    if (Point::collide(points[j], points[k])) {
+                        points[min(j,k)] += points[max(j,k)];
+                        trash[omp_get_thread_num()].emplace_back(k);
+                    }
                 }
             }
+        for(auto i = 5; i>=0; i--){
+            for(auto j: trash[i]){
+                objs--;
+                x_axis[j]=x_axis[objs];
+            }
         }
+        while (x_axis.size() != objs) x_axis.pop_back();
     }
 
     inline void checkBounds(Point &p) {
@@ -57,6 +66,7 @@ private:
 
 public:
     std::vector<Point> points;
+    std::vector<Ordinate> x_axis;
 
     AosSimulator(int objs, int seed, double size, double dt) {
 
@@ -67,41 +77,62 @@ public:
         uniform_real_distribution<double> ud(0, size);
         normal_distribution<double> nd(1e21, 1e15);
         double x, y, z, m;
-        for (int i = 0; i < objs; i++) {
+        for (unsigned int i = 0; i < this->objs; i++) {
             x = ud(gen);
             y = ud(gen);
             z = ud(gen);
             m = nd(gen);
-            points.emplace_back(x, y, z, i, m);
+            points.emplace_back(x, y, z, m);
+            x_axis.emplace_back(i,(unsigned int) x);
         }
         checkCollisions();
     }
 
-    void run(const int iterations) override {
-        for (auto l = 0; l < iterations; l++) {
-# pragma omp parallel num_threads(6)
-            {
-#pragma omp for schedule(auto)
-                for (unsigned int i = 0; i < points.size(); i++) {
-                    SpaceVector sum{0};
-                    for (auto j = i + 1; j < points.size(); j++) {
-                        auto force_vec = (points[j].pos - points[i].pos);
-                        auto force_vec_prod = force_vec.dotProduct();
-                        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
-                        auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
-                        sum += force_ij;
-                        points[j].forcesum -= force_ij;
-                    }
-                    points[i].forcesum +=sum;
-                }
+    void add_force(unsigned int first, unsigned  int last, unsigned  int threads)
+    {
+        unsigned int middle;
 
-# pragma omp barrier
-#pragma omp for schedule(static)
-                for (unsigned int i = 0 ; i < points.size(); i++)  {
-                    points[i].move(dt);
-                    checkBounds(points[i]);
+        if (threads > 1){
+            middle = first + (last - first) / 2;
+#pragma omp parallel sections
+            {
+#pragma omp section
+                {
+                    add_force(first, middle, threads/2);
+                }
+#pragma omp section
+                {
+                    add_force(middle, last, threads - threads/2);
                 }
             }
+        } else {
+            middle = last;
+        }
+        for(auto i = first; i < middle; i++){
+            for(auto j = i + 1; j < last; j++){
+                points[x_axis[i].index].addForce(points[x_axis[j].index]);
+            }
+        }
+    }
+
+    void run(const int iterations) override {
+        for (auto l = 0; l < iterations; l++) {
+            for (unsigned int  i = 0; i < x_axis.size(); i++) {
+                for (auto j = i + 1; j < x_axis.size(); j++) points[x_axis[i].index].addForce(points[x_axis[j].index]);
+            }
+            for (unsigned int i = 0 ; i < x_axis.size(); i++) {
+                    points[x_axis[i].index].move(dt);
+                    checkBounds(points[x_axis[i].index]);
+                    x_axis[i].value = (unsigned int) points[x_axis[i].index].pos.x;
+            }
+//            add_force(0, x_axis.size(), 6);
+//#pragma omp parallel for schedule(static)  num_threads(6)
+//                for (unsigned int i = 0 ; i < x_axis.size(); i++)  {
+//                    points[x_axis[i].index].move(dt);
+//                    checkBounds(points[x_axis[i].index]);
+//                    x_axis[i].value = (unsigned int) points[x_axis[i].index].pos.x;
+//                }
+
             checkCollisions();
         }
     }

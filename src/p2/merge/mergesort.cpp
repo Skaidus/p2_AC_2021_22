@@ -6,10 +6,17 @@
 #include "../Point/Point.cpp"
 #include <algorithm>
 
+
 using namespace std;
 
+struct Ordinate {
+    unsigned int index;
+    unsigned int value;
+    Ordinate(unsigned int index, unsigned int value): index{index}, value{value} {}
+};
+
 struct {
-    bool operator()(Point a, Point b) const { return (b.order==-1)||(a.pos.x < b.pos.x);}
+    bool operator()(Ordinate a, Ordinate b) const { return (a.value < b.value);}
 } customLess;
 
 template<class Iter>
@@ -29,10 +36,10 @@ void merge_sort(Iter first, Iter last, int threads)
                     merge_sort(middle, last, threads - threads/2);
                 }
             }
+            inplace_merge(first, middle, last, customLess);
         } else {
-            merge_sort(first, middle, 1);
-            merge_sort(middle, last, 1);
+            std::sort(first, last, customLess);
         }
-        inplace_merge(first, middle, last, customLess);
+
     }
 }
