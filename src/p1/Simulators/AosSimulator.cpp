@@ -23,6 +23,7 @@ private:
                 }
             }
             while (points.size() != objs) points.pop_back();
+
         }
     }
 
