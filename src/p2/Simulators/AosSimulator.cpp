@@ -11,11 +11,21 @@
 
 using namespace std;
 
+struct grid {
+    SpaceVector min;
+    SpaceVector max;
+    grid(double x, double y, double z, double partition): min{x,y,z}, max{x+partition,y+partition,z+partition}{}
+    vector <unsigned int> points;
+    bool in(const SpaceVector v){
+        return (x<v.x<(x+partition))
+    }
+};
+
 class AosSimulator : public Simulator {
 private:
     void checkCollisions() override {
         merge_sort(x_axis.begin(), x_axis.end(), 6);
-        vector <unsigned int> trash[6];
+        vector <unsigned int> uniform_grid[6];
 
 #pragma omp parallel for schedule(static) num_threads(6)
             for (unsigned int i = 0; i < x_axis.size() -1 ; i++) {
@@ -67,12 +77,26 @@ private:
 public:
     std::vector<Point> points;
     std::vector<Ordinate> x_axis;
+    grid space_partition[6];
+    double partition;
 
     AosSimulator(int objs, int seed, double size, double dt) {
 
         this->objs = objs;
         this->size = size;
         this->dt = dt;
+        partition = size/3.0;
+        for(auto &g: space_partition){
+            for(auto i=1; i<4; i++){
+                for(auto j=1; j<4; j++){
+                    for(auto k=1; k<4; k++){
+                        g.x = i*partition;
+                        g.y = j*partition;
+                        g.z = k*partition;
+                    }
+                }
+            }
+        }
         mt19937_64 gen(seed);
         uniform_real_distribution<double> ud(0, size);
         normal_distribution<double> nd(1e21, 1e15);
@@ -120,10 +144,12 @@ public:
             for (unsigned int  i = 0; i < x_axis.size(); i++) {
                 for (auto j = i + 1; j < x_axis.size(); j++) points[x_axis[i].index].addForce(points[x_axis[j].index]);
             }
-            for (unsigned int i = 0 ; i < x_axis.size(); i++) {
-                    points[x_axis[i].index].move(dt);
-                    checkBounds(points[x_axis[i].index]);
-                    x_axis[i].value = (unsigned int) points[x_axis[i].index].pos.x;
+            for (unsigned int i = 0 ; i < points.size(); i++) {
+                    points[i].move(dt);
+                    checkBounds(points[i]);
+                    for(auto j=0; j<6;j++){
+                        space_partition[j]
+                    }
             }
 //            add_force(0, x_axis.size(), 6);
 //#pragma omp parallel for schedule(static)  num_threads(6)

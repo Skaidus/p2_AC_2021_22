@@ -53,6 +53,10 @@ public:
         return {x * s, y * s, z * s};
     }
 
+    inline bool operator<(const SpaceVector v) const {
+        return (x<v.x)&&(y<v.y)&&(z<v.z);
+    }
+
     SpaceVector operator+(const SpaceVector v) const {
         return {x + v.x, y + v.y, z + v.z};
     }
