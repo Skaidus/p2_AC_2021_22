@@ -7,13 +7,12 @@
 #include <cmath>
 //imports
 #include "Point.hpp"
-
+#include <bitset>
 class Point {
 public:
     SpaceVector pos; // Position of the point in the space
     SpaceVector vel; // Velocity of the point in a specific moment
-    SpaceVector forcesum; // Sum of the forces of all points
-    bool invalid{false};
+    std::bitset<2> status; // [0]: modified, [1]: deleted
     double mass{}; // Mass of the point
     double mass_inv{}; // Inverse to save up time
 
@@ -28,38 +27,60 @@ public:
     inline Point &operator=(Point p) {
         vel = p.vel;
         mass = p.mass;
-        mass_inv = 1 / mass;
+        mass_inv = p.mass_inv;
+
         return *this;
+    }
+
+    inline void remove(){
+        if(!status[1]){
+            status[1]=true;
+        }
+    }
+
+    inline void modify(){
+        if(!status[0]){
+            status[0]=true;
+        }
+    }
+
+    inline void update(){
+        if(status[0])
+            mass_inv = 1/mass;
     }
 
 
     // Functions
 
-    inline Point &operator+=(Point p) {
+    inline Point &operator+=(const Point p) {
         vel += p.vel;
         mass += p.mass;
-        mass_inv = 1 / mass;
-        p.invalid=true;
         return *this;
     }
 
-    inline void move(double time) {
+    inline void move(const double time, const SpaceVector forcesum) {
         vel += (forcesum * (time * mass_inv));
-        forcesum = 0;
         pos += (vel * time);
     }
 
-    inline void addForce(Point &p) {
-        auto force_vec = (p.pos - pos);
-        auto force_vec_prod = force_vec.dotProduct();
-        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
-        auto force_ij = force_vec * ((G * mass * p.mass) / force_vec_prod);
-        forcesum += force_ij;
-        p.forcesum -= force_ij;
-    }
+//    inline void addForce(Point &p) {
+//        auto force_vec = (p.pos - pos);
+//        auto force_vec_prod = force_vec.dotProduct();
+//        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
+//        auto force_ij = force_vec * ((G * mass * p.mass) / force_vec_prod);
+//    }
 
     inline static bool collide(const Point p1, const Point p2) {
-        return (p1.pos - p2.pos).dotProduct() < 1;
+        auto sumx = p1.pos.x-p2.pos.x;
+        sumx = sumx*sumx;
+        if(sumx>=1) return false;
+        auto sumy = p1.pos.y-p2.pos.y;
+        sumy = sumy * sumy;
+        if(sumy>=1) return false;
+        auto sumz = p1.pos.z-p2.pos.z;
+        sumz = sumz * sumz;
+        if(sumz>=1) return false;
+        return (sumx+sumy+sumz) < 1;
     }
 };
 

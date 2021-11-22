@@ -9,42 +9,41 @@
 #include <omp.h>
 #include <cmath>
 
+//#define num_threads 6
+
 using namespace std;
 
-struct grid {
-    SpaceVector min;
-    SpaceVector max;
-    grid(double x, double y, double z, double partition): min{x,y,z}, max{x+partition,y+partition,z+partition}{}
-    vector <unsigned int> points;
-    bool in(const SpaceVector v){
-        return (x<v.x<(x+partition))
-    }
-};
+template <typename T>
+std::vector<T> operator+(const std::vector<T> &A, const std::vector<T> &B)
+{
+    std::vector<T> AB;
+    AB.reserve(A.size() + B.size());                // preallocate memory
+    AB.insert(AB.end(), A.begin(), A.end());        // add A;
+    AB.insert(AB.end(), B.begin(), B.end());        // add B;
+    return AB;
+}
+
 
 class AosSimulator : public Simulator {
 private:
-    void checkCollisions() override {
-        merge_sort(x_axis.begin(), x_axis.end(), 6);
-        vector <unsigned int> uniform_grid[6];
 
-#pragma omp parallel for schedule(static) num_threads(6)
-            for (unsigned int i = 0; i < x_axis.size() -1 ; i++) {
-                if(x_axis[i].value-x_axis[i+1].value==0){
-                    auto j = x_axis[i].index;
-                    auto k = x_axis[i+1].index;
-                    if (Point::collide(points[j], points[k])) {
-                        points[min(j,k)] += points[max(j,k)];
-                        trash[omp_get_thread_num()].emplace_back(k);
-                    }
+    void checkCollisions() override {
+        for (unsigned int i = 0; i < objs; i++) {
+            bool changed = false;
+            for (unsigned int  j = i + 1; j < objs;) {
+                if (Point::collide(points[i], points[j])) {
+                    points[i] += points[j];
+                    objs--;
+                    points[j] = points[objs];
+                    if(!changed) changed = true;
+                } else {
+                    j++;
                 }
             }
-        for(auto i = 5; i>=0; i--){
-            for(auto j: trash[i]){
-                objs--;
-                x_axis[j]=x_axis[objs];
-            }
+            if(changed) points[i].update();
+            while (points.size() != objs) points.pop_back();
+
         }
-        while (x_axis.size() != objs) x_axis.pop_back();
     }
 
     inline void checkBounds(Point &p) {
@@ -76,95 +75,89 @@ private:
 
 public:
     std::vector<Point> points;
-    std::vector<Ordinate> x_axis;
-    grid space_partition[6];
-    double partition;
+    std::vector<unsigned int> trash;
 
     AosSimulator(int objs, int seed, double size, double dt) {
 
         this->objs = objs;
+
         this->size = size;
         this->dt = dt;
-        partition = size/3.0;
-        for(auto &g: space_partition){
-            for(auto i=1; i<4; i++){
-                for(auto j=1; j<4; j++){
-                    for(auto k=1; k<4; k++){
-                        g.x = i*partition;
-                        g.y = j*partition;
-                        g.z = k*partition;
-                    }
-                }
-            }
+        trash = std::vector<unsigned int>(objs);
+        for(auto i=0; i<objs;objs++){
+            trash[i]=i;
         }
         mt19937_64 gen(seed);
         uniform_real_distribution<double> ud(0, size);
         normal_distribution<double> nd(1e21, 1e15);
         double x, y, z, m;
+
         for (unsigned int i = 0; i < this->objs; i++) {
             x = ud(gen);
             y = ud(gen);
             z = ud(gen);
             m = nd(gen);
             points.emplace_back(x, y, z, m);
-            x_axis.emplace_back(i,(unsigned int) x);
         }
-        checkCollisions();
+        //checkCollisions();
     }
 
-    void add_force(unsigned int first, unsigned  int last, unsigned  int threads)
-    {
-        unsigned int middle;
-
-        if (threads > 1){
-            middle = first + (last - first) / 2;
-#pragma omp parallel sections
-            {
-#pragma omp section
-                {
-                    add_force(first, middle, threads/2);
-                }
-#pragma omp section
-                {
-                    add_force(middle, last, threads - threads/2);
-                }
-            }
-        } else {
-            middle = last;
-        }
-        for(auto i = first; i < middle; i++){
-            for(auto j = i + 1; j < last; j++){
-                points[x_axis[i].index].addForce(points[x_axis[j].index]);
-            }
-        }
+    bool comp(int i, int j){
+        return points[i].pos.x<points[j].pos.x;
     }
+
+
 
     void run(const int iterations) override {
-        for (auto l = 0; l < iterations; l++) {
-            for (unsigned int  i = 0; i < x_axis.size(); i++) {
-                for (auto j = i + 1; j < x_axis.size(); j++) points[x_axis[i].index].addForce(points[x_axis[j].index]);
-            }
-            for (unsigned int i = 0 ; i < points.size(); i++) {
-                    points[i].move(dt);
-                    checkBounds(points[i]);
-                    for(auto j=0; j<6;j++){
-                        space_partition[j]
+        omp_set_num_threads(16);
+            for (auto l = 0; l < iterations; l++) {
+                int min_slice = (int) objs/16;
+
+#pragma omp parallel
+                {
+                    auto id = omp_get_thread_num();
+                    int start = min_slice*id;
+                    int end;
+                    if(id==15){
+                        end = (int) objs;
+                    } else {
+                        end = start+min_slice;
                     }
+                for (int  i = start; i < end; i++) {
+                    SpaceVector forcesum;
+                    for (int j = 0; j < (int) objs; j++) {
+                        if(i!=j){
+                            auto force_vec = (points[j].pos - points[i].pos);
+                            auto force_vec_prod = force_vec.dotProduct();
+                            force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
+                            auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
+                            forcesum += force_ij;
+                        }
+                    }
+                    points[i].move(dt, forcesum);
+                    checkBounds(points[i]);
+                }
+                sort(trash.begin()+start, trash.begin()+end,
+                     [this](const unsigned int i, const unsigned int j) -> bool
+                     {
+                         return points[i].pos.x < points[j].pos.x;
+                     });
             }
-//            add_force(0, x_axis.size(), 6);
-//#pragma omp parallel for schedule(static)  num_threads(6)
-//                for (unsigned int i = 0 ; i < x_axis.size(); i++)  {
-//                    points[x_axis[i].index].move(dt);
-//                    checkBounds(points[x_axis[i].index]);
-//                    x_axis[i].value = (unsigned int) points[x_axis[i].index].pos.x;
-//                }
+            for(int i = 0; i<16; i++){
+                if(i!=15){
+                    inplace_merge(trash.begin()+min_slice*i, trash.begin()+min_slice*(i+1), trash.begin()+min_slice*(i+2),
+                         [this](const unsigned int i, const unsigned int j) -> bool
+                         {
+                             return points[i].pos.x < points[j].pos.x;
+                         });
+                }
+            }
 
-            checkCollisions();
-        }
+
+
+            }
     }
-
 };
-
 inline std::ostream &operator<<(std::ostream &os, const AosSimulator &s) {
     os.precision(3);
     os << fixed;
