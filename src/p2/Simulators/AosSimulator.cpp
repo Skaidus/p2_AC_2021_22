@@ -76,6 +76,7 @@ private:
 public:
     std::vector<Point> points;
     std::vector<unsigned int> trash;
+    std::vector<unsigned int> trash2;
 
     AosSimulator(int objs, int seed, double size, double dt) {
 
@@ -142,6 +143,35 @@ public:
                      {
                          return points[i].pos.x < points[j].pos.x;
                      });
+#pragma omp barrier
+                for(int i = 2; i<=16;i+=2){
+                    if((id+1)%i==0){
+                        inplace_merge(trash.begin()+start-((i-1)*min_slice), trash.begin()+start-(((i/2)-1)*min_slice), trash.begin()+end,
+                                      [this](const unsigned int i, const unsigned int j) -> bool
+                                      {
+                                          return points[i].pos.x < points[j].pos.x;
+                                      });
+                    }
+#pragma omp barrier
+                }
+                    std::vector<unsigned int> mytrash;
+                    for (int  i = start+1; i < end-1; i++) {
+                        if(Point::collide(points[trash[i-1]], points[trash[i]])){
+                            auto maxi = max(trash[i-1], trash[i]);
+                            auto mini = mini(trash[i-1], trash[i]);
+                            points[mini] += points[maxi];
+                            mytrash.emplace_back(maxi);
+                            if(mini == trash[i-1]) {
+                                trash[i]=trash[i-1];
+                            }
+                            trash[i-1] = i-1;
+                        }
+                    }
+#pragma omp ordered
+                    {
+
+                }
+                };
             }
             for(int i = 0; i<16; i++){
                 if(i!=15){
