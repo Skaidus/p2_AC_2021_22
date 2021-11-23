@@ -69,6 +69,14 @@ private:
         }
     }
 
+    inline void addForce(static int i,static int j) {
+        auto force_vec = (points[j].pos - points[i].pos);
+        auto force_vec_prod = force_vec.dotProduct();
+        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
+        auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
+        forcesum += force_ij;
+    }
+
 public:
     std::vector<Point> points;
 
@@ -106,13 +114,7 @@ public:
                 for (int i = 0; i < objs; i++) {
                     SpaceVector forcesum(0);
                     for (int j = 0; j < objs; j++) {
-                        if (i != j) {
-                            auto force_vec = (points[j].pos - points[i].pos);
-                            auto force_vec_prod = force_vec.dotProduct();
-                            force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
-                            auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
-                            forcesum += force_ij;
-                        }
+                        if (i != j) addForce(i,j);
                     }
                     points[i].move(dt, forcesum);
                     checkBounds(points[i]);
