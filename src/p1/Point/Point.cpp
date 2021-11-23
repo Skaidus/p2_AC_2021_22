@@ -22,6 +22,7 @@ public:
     inline Point(const Point &) = default;
 
     inline Point &operator=(Point p) {
+        pos = p.pos;
         vel = p.vel;
         mass = p.mass;
         mass_inv = 1 / mass;

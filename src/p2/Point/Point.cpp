@@ -4,7 +4,6 @@
 
 //std
 #include <iostream>
-#include <cmath>
 //imports
 #include "Point.hpp"
 #include <bitset>
@@ -12,41 +11,34 @@ class Point {
 public:
     SpaceVector pos; // Position of the point in the space
     SpaceVector vel; // Velocity of the point in a specific moment
-    std::bitset<2> status; // [0]: modified, [1]: deleted
     double mass{}; // Mass of the point
     double mass_inv{}; // Inverse to save up time
+    unsigned int killer{0};
+    bool killed{false};
+    bool updated{false};
 
     // Constructors
     inline Point(double x, double y, double z,  double mass) : pos(x, y, z), mass{mass}, mass_inv{1.0 / mass}{}
 
-    // Fusion
-    inline Point(SpaceVector pos, SpaceVector vel, double mass) : pos{pos}, vel{vel}, mass{mass}{}
-
     inline Point(const Point &) = default;
 
     inline Point &operator=(Point p) {
+        pos= p.pos;
         vel = p.vel;
         mass = p.mass;
         mass_inv = p.mass_inv;
-
+        killed=p.killed;
+        updated=p.updated;
+        killer=p.killer;
         return *this;
     }
 
-    inline void remove(){
-        if(!status[1]){
-            status[1]=true;
-        }
-    }
-
-    inline void modify(){
-        if(!status[0]){
-            status[0]=true;
-        }
-    }
 
     inline void update(){
-        if(status[0])
-            mass_inv = 1/mass;
+        if(updated) {
+            mass_inv = 1.0/mass;
+            updated = false;
+        }
     }
 
 
@@ -55,6 +47,7 @@ public:
     inline Point &operator+=(const Point p) {
         vel += p.vel;
         mass += p.mass;
+        if(!updated) {updated=true;}
         return *this;
     }
 

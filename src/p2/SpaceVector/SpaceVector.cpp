@@ -40,6 +40,7 @@ public:
         return *this;
     }
 
+
     inline SpaceVector &operator=(const double s) {
         x = s;
         y = s;
@@ -47,18 +48,19 @@ public:
         return *this;
     }
 
+    inline SpaceVector(const SpaceVector &) = default;
+
+    inline SpaceVector &operator=(const SpaceVector s) {
+        x = s.x;
+        y = s.y;
+        z = s.z;
+        return *this;
+    }
+
 
 
     inline SpaceVector operator*(const double s) const {
         return {x * s, y * s, z * s};
-    }
-
-    inline bool operator<(const SpaceVector v) const {
-        return (x<v.x)&&(y<v.y)&&(z<v.z);
-    }
-
-    SpaceVector operator+(const SpaceVector v) const {
-        return {x + v.x, y + v.y, z + v.z};
     }
 
     inline SpaceVector operator-(const SpaceVector v) const {

@@ -11,7 +11,7 @@ protected:
     virtual void checkCollisions() = 0;
 
 public:
-    unsigned int objs{};
+    int objs{};
     double dt{}, size{};
 
     virtual void run(int iterations) = 0;
