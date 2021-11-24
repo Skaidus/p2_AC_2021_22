@@ -14,7 +14,7 @@ public:
     int objs{};
     double dt{}, size{};
 
-    virtual void run(int iterations) = 0;
+    virtual void run(int iterations, int numthreads) = 0;
 };
 
 #endif //P1_AC_2020_21_SIMULATOR_HPP

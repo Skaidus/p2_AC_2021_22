@@ -11,9 +11,10 @@ class Point {
 public:
     SpaceVector pos; // Position of the point in the space
     SpaceVector vel; // Velocity of the point in a specific moment
+    SpaceVector forcesum{0};
     double mass{}; // Mass of the point
     double mass_inv{}; // Inverse to save up time
-    unsigned int killer{0};
+    int killer{0};
     bool killed{false};
     bool updated{false};
 
@@ -51,17 +52,18 @@ public:
         return *this;
     }
 
-    inline void move(const double time, const SpaceVector forcesum) {
+    inline void move(const double time) {
         vel += (forcesum * (time * mass_inv));
+        forcesum=0;
         pos += (vel * time);
     }
 
-//    inline void addForce(Point &p) {
-//        auto force_vec = (p.pos - pos);
-//        auto force_vec_prod = force_vec.dotProduct();
-//        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
-//        auto force_ij = force_vec * ((G * mass * p.mass) / force_vec_prod);
-//    }
+    inline void addForce(const Point p) {
+        auto force_vec = (p.pos - pos);
+        auto force_vec_prod = force_vec.dotProduct();
+        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
+        forcesum += force_vec * ((G * mass * p.mass) / force_vec_prod);
+    }
 
     inline static bool collide(const Point p1, const Point p2) {
         auto sumx = p1.pos.x-p2.pos.x;

@@ -8,7 +8,6 @@
 #include "../Point/Point.cpp"
 #include <omp.h>
 
-//#define num_threads 6
 
 using namespace std;
 
@@ -16,7 +15,7 @@ class AosSimulator : public Simulator {
 private:
 
     void checkCollisions() override {
-#pragma omp for schedule(auto)
+#pragma omp for schedule(static, 64)
         for (int i = 0; i < objs; i++) {
             for (int j = 0; j < i; j++) {
                 if (Point::collide(points[i], points[j])) {
@@ -38,9 +37,24 @@ private:
                 points[i].update();
             }
         }
-        while ((int) points.size() != objs) points.pop_back();
+        while (((int) points.size()) != objs) points.pop_back();
     }
 
+    void checkCollisions2()  {
+        for (int i = 0; i < objs; i++) {
+            for (int  j = i + 1; j < objs;) {
+                if (Point::collide(points[i], points[j])) {
+                    points[i] += points[j];
+                    objs--;
+                    points[j] = points[objs];
+                } else {
+                    j++;
+                }
+            }
+            while ((int)points.size() != objs) points.pop_back();
+
+        }
+    }
 
     inline void checkBounds(Point &p) {
         if (p.pos.x < 0) {
@@ -69,14 +83,6 @@ private:
         }
     }
 
-    inline void addForce(static int i,static int j) {
-        auto force_vec = (points[j].pos - points[i].pos);
-        auto force_vec_prod = force_vec.dotProduct();
-        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
-        auto force_ij = force_vec * ((G * points[i].mass * points[j].mass) / force_vec_prod);
-        forcesum += force_ij;
-    }
-
 public:
     std::vector<Point> points;
 
@@ -101,27 +107,31 @@ public:
         }
     }
 
-    void run(const int iterations) override {
-        omp_set_num_threads(16);
+    void run(const int iterations, const int numthreads) override {
+        omp_set_num_threads(numthreads);
 
-#pragma omp parallel
+#pragma omp parallel default(none)
         checkCollisions();
         resolveCollisions();
         for (auto l = 0; l < iterations; l++) {
-#pragma omp parallel
+#pragma omp parallel default(none)
         {
 #pragma omp for schedule(static)
                 for (int i = 0; i < objs; i++) {
-                    SpaceVector forcesum(0);
                     for (int j = 0; j < objs; j++) {
-                        if (i != j) addForce(i,j);
+                        if (i != j) points[i].addForce(points[j]);
                     }
-                    points[i].move(dt, forcesum);
+                }
+#pragma omp for schedule(static)
+                for (int i = 0; i < objs; i++) {
+                    points[i].move(dt);
                     checkBounds(points[i]);
                 }
                 checkCollisions();
+
         };
-            resolveCollisions();
+        resolveCollisions();
+        //checkCollisions2();
         }
     }
 };
