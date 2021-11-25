@@ -15,7 +15,7 @@ class AosSimulator : public Simulator {
 private:
 
     void checkCollisions() override {
-#pragma omp for schedule(static, 64)
+#pragma omp for schedule(auto)
         for (int i = 0; i < objs; i++) {
             for (int j = 0; j < i; j++) {
                 if (Point::collide(points[i], points[j])) {
@@ -37,24 +37,9 @@ private:
                 points[i].update();
             }
         }
-        while (((int) points.size()) != objs) points.pop_back();
+        //while (((int) points.size()) != objs) points.pop_back();
     }
 
-    void checkCollisions2()  {
-        for (int i = 0; i < objs; i++) {
-            for (int  j = i + 1; j < objs;) {
-                if (Point::collide(points[i], points[j])) {
-                    points[i] += points[j];
-                    objs--;
-                    points[j] = points[objs];
-                } else {
-                    j++;
-                }
-            }
-            while ((int)points.size() != objs) points.pop_back();
-
-        }
-    }
 
     inline void checkBounds(Point &p) {
         if (p.pos.x < 0) {
@@ -142,6 +127,6 @@ inline std::ostream &operator<<(std::ostream &os, const AosSimulator &s) {
     os.precision(3);
     os << fixed;
     os << s.size << ' ' << s.dt << ' ' << s.objs << '\n';
-    for (auto &p: s.points) os << p << '\n';
+    for (auto i=0; i<s.objs;i++) os << s.points[i] << '\n';
     return os;
 }

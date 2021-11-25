@@ -13,7 +13,7 @@ class SoaSimulator : public Simulator {
 private:
 
     void checkCollisions() override {
-#pragma omp for schedule(static, 64)
+#pragma omp for schedule(auto)
         for (int i = 0; i < objs; i++) {
             for (int j = 0; j < i; j++) {
                 if (collide(i, j)) {
@@ -28,12 +28,19 @@ private:
     void resolveCollisions()  {
         for (int i =  objs-1; i >= 0;i--) {
             if (killed[i]) {
-                absorb(killer[i], i);
+                vel[killer[i]] += vel[i];
+                mass[killer[i]] += mass[i];
+                if(!updated[killer[i]]) {updated[killer[i]]=true;}
+                objs--;
+                pos[i] = pos[objs];
+                vel[i] = vel[objs];
+                mass[i] = mass[objs];
+                mass_inv[i] = mass_inv[objs];
             } else {
                 update(i);
             }
         }
-        clean();
+        //clean();
     }
 
     inline void checkBounds(int i) {
@@ -63,8 +70,17 @@ private:
         }
     }
 
-    inline bool collide(int i, int j) {
-        return (pos[i] - pos[j]).dotProduct() < 1;
+    inline bool collide(const int i, const int j) {
+        auto sumx = pos[i].x-pos[j].x;
+        sumx = sumx*sumx;
+        if(sumx>=1) return false;
+        auto sumy = pos[i].y-pos[j].y;
+        sumy = sumy * sumy;
+        if(sumy>=1) return false;
+        auto sumz = pos[i].z-pos[j].z;
+        sumz = sumz * sumz;
+        if(sumz>=1) return false;
+        return (sumx+sumy+sumz) < 1;
     }
 
 
@@ -82,7 +98,7 @@ private:
         }
     }
 
-    inline void addForce(int i, int j) {
+    inline void addForce(const int i, const int j) {
         auto force_vec = (pos[j] - pos[i]);
         auto force_vec_prod = force_vec.dotProduct();
         force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
@@ -101,9 +117,9 @@ private:
         vel[i] = vel[objs];
         mass[i] = mass[objs];
         mass_inv[i] = mass_inv[objs];
-        killed[i]=killed[objs];
-        killer[i]=killer[objs];
-        updated[i]=updated[objs];
+//        killed[i]=killed[objs];
+//        killer[i]=killer[objs];
+//        updated[i]=updated[objs];
     }
 
     inline void clean() {
@@ -156,7 +172,6 @@ public:
 
     void run(const int iterations, const int numthreads) override {
         omp_set_num_threads(numthreads);
-
 #pragma omp parallel default(none)
         checkCollisions();
         resolveCollisions();

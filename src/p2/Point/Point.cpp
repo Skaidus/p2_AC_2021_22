@@ -28,9 +28,9 @@ public:
         vel = p.vel;
         mass = p.mass;
         mass_inv = p.mass_inv;
-        killed=p.killed;
-        updated=p.updated;
-        killer=p.killer;
+//        killed=p.killed;
+//        updated=p.updated;
+//        killer=p.killer;
         return *this;
     }
 
