@@ -1,6 +1,4 @@
-# p2_AC_2021_22
-Parallelized version of particle simulator using OpenMP
+# Parallelized particle simulation with OpenMP
 
-Results of various inputs (If transparent background try disabling Dark mode)
+Here are some of the most significant results both using AOS and SOA while comparing with different number of threads. The simulation was run in a 16 GB RAM 8 core machine.
 ![plot](./src/test/img/test_ns.png)
-![plot](./src/test/img/test_ns_iter.png)
