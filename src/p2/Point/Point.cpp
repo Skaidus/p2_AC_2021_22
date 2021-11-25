@@ -1,12 +1,9 @@
-//
-// Created by Usuario on 10/10/2021.
-//
 
 //std
 #include <iostream>
 //imports
 #include "Point.hpp"
-#include <bitset>
+
 class Point {
 public:
     SpaceVector pos; // Position of the point in the space
@@ -19,12 +16,12 @@ public:
     bool updated{false};
 
     // Constructors
-    inline Point(double x, double y, double z,  double mass) : pos(x, y, z), mass{mass}, mass_inv{1.0 / mass}{}
+    inline Point(double x, double y, double z, double mass) : pos(x, y, z), mass{mass}, mass_inv{1.0 / mass} {}
 
     inline Point(const Point &) = default;
 
     inline Point &operator=(Point p) {
-        pos= p.pos;
+        pos = p.pos;
         vel = p.vel;
         mass = p.mass;
         mass_inv = p.mass_inv;
@@ -35,9 +32,9 @@ public:
     }
 
 
-    inline void update(){
-        if(updated) {
-            mass_inv = 1.0/mass;
+    inline void update() {
+        if (updated) {
+            mass_inv = 1.0 / mass;
             updated = false;
         }
     }
@@ -48,13 +45,13 @@ public:
     inline Point &operator+=(const Point p) {
         vel += p.vel;
         mass += p.mass;
-        if(!updated) {updated=true;}
+        if (!updated) { updated = true; }
         return *this;
     }
 
     inline void move(const double time) {
         vel += (forcesum * (time * mass_inv));
-        forcesum=0;
+        forcesum = 0;
         pos += (vel * time);
     }
 
@@ -66,16 +63,16 @@ public:
     }
 
     inline static bool collide(const Point p1, const Point p2) {
-        auto sumx = p1.pos.x-p2.pos.x;
-        sumx = sumx*sumx;
-        if(sumx>=1) return false;
-        auto sumy = p1.pos.y-p2.pos.y;
+        auto sumx = p1.pos.x - p2.pos.x;
+        sumx = sumx * sumx;
+        if (sumx >= 1) return false;
+        auto sumy = p1.pos.y - p2.pos.y;
         sumy = sumy * sumy;
-        if(sumy>=1) return false;
-        auto sumz = p1.pos.z-p2.pos.z;
+        if (sumy >= 1) return false;
+        auto sumz = p1.pos.z - p2.pos.z;
         sumz = sumz * sumz;
-        if(sumz>=1) return false;
-        return (sumx+sumy+sumz) < 1;
+        if (sumz >= 1) return false;
+        return (sumx + sumy + sumz) < 1;
     }
 };
 

@@ -3,7 +3,6 @@
 //
 
 //std
-#include <cmath>
 #include <iostream>
 
 class SpaceVector {
@@ -56,7 +55,6 @@ public:
         z = s.z;
         return *this;
     }
-
 
 
     inline SpaceVector operator*(const double s) const {

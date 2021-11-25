@@ -1,6 +1,3 @@
-//
-// Created by Usuario on 10/13/2021.
-//
 
 #include "Parsing/Parsing.cpp"
 #include "./Simulators/AosSimulator.cpp"
@@ -22,7 +19,7 @@ int main(int argc, char **argv) {
     // SOA experiment
     auto soa = AosSimulator(args.num_objects, args.random_seed, args.size_enclosure, args.time_step);
     init << soa << '\n';
-    soa.run(args.num_iterations,8);
+    soa.run(args.num_iterations, 8);
     final << soa << '\n';
     return 0;
 }

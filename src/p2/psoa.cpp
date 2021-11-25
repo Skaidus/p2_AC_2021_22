@@ -1,6 +1,3 @@
-//
-// Created by Usuario on 10/13/2021.
-//
 
 #include "Parsing/Parsing.cpp"
 #include "./Simulators/SoaSimulator.cpp"

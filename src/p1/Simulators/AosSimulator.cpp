@@ -13,7 +13,7 @@ class AosSimulator : public Simulator {
 private:
     void checkCollisions() override {
         for (unsigned int i = 0; i < objs; i++) {
-            for (unsigned int  j = i + 1; j < objs;) {
+            for (unsigned int j = i + 1; j < objs;) {
                 if (Point::collide(points[i], points[j])) {
                     points[i] += points[j];
                     objs--;
@@ -77,10 +77,10 @@ public:
 
     void run(const int iterations) override {
         for (auto l = 0; l < iterations; l++) {
-            for (unsigned int  i = 0; i < objs; i++) {
+            for (unsigned int i = 0; i < objs; i++) {
                 for (auto j = i + 1; j < objs; j++) points[i].addForce(points[j]);
             }
-            for (unsigned int  i = 0; i < objs; i++) {
+            for (unsigned int i = 0; i < objs; i++) {
                 points[i].move(dt);
                 checkBounds(points[i]);
             }

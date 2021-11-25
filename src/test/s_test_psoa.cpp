@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     if ((err = convertInput(argc, argv, args)) < 0) return err;
     // SOA experiment
     auto soa = SoaSimulator(args.num_objects, args.random_seed, args.size_enclosure, args.time_step);
-    soa.run(args.num_iterations,8);
+    soa.run(args.num_iterations, 8);
     cout << soa << '\n';
     return 0;
 }

@@ -2,3 +2,6 @@
 /cmake-build-debug/
 /cmake-build-release/
 /.idea/
+/src/sim-v8-log
+/src/final_config.txt
+/src/init_config.txt

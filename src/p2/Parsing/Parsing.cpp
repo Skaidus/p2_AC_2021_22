@@ -1,6 +1,3 @@
-//
-// Created by Usuario on 10/11/2021.
-//
 
 //std
 #include <iostream>
@@ -39,37 +36,37 @@ inline int convertInput(int argc, char **argv, Arguments &args) {
     }
 
     try {
-        try{
+        try {
             args.num_objects = stoi(argv[1]);
-        }catch (const exception &e) {
+        } catch (const exception &e) {
             throw invalid_argument("Number of objects cannot be converted to integer");
         }
         if (args.num_objects <= 0) throw invalid_argument("Number of objects must be greater than zero");
 
-        try{
+        try {
             args.num_iterations = stoi(argv[2]);
-        }catch (const exception &e) {
+        } catch (const exception &e) {
             throw invalid_argument("Number of iteration cannot be converted to integer");
         }
         if (args.num_iterations <= 0) throw invalid_argument("Number of iterations must be greater than zero");
 
-        try{
+        try {
             args.random_seed = stoi(argv[3]);
-        }catch (const exception &e) {
+        } catch (const exception &e) {
             throw invalid_argument("Random seed cannot be converted to integer");
         }
-        if (args.random_seed  <= 0) throw invalid_argument("Random seed must be greater than zero");
+        if (args.random_seed <= 0) throw invalid_argument("Random seed must be greater than zero");
 
-        try{
+        try {
             args.size_enclosure = stod(argv[4]);
-        }catch (const exception &e) {
+        } catch (const exception &e) {
             throw invalid_argument("Size enclosure cannot be converted to double");
         }
         if (args.size_enclosure <= 0) throw invalid_argument("Size enclosure must be greater than zero");
 
-        try{
+        try {
             args.time_step = stod(argv[5]);
-        }catch (const exception &e) {
+        } catch (const exception &e) {
             throw invalid_argument("Time step cannot be converted to double");
         }
         if (args.time_step <= 0) throw invalid_argument("Time step must be greater than zero");

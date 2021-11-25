@@ -1,7 +1,4 @@
 
-//
-// Created by Usuario on 10/10/2021.
-//
 
 //imports
 #include "Simulator.hpp"
@@ -14,32 +11,7 @@ using namespace std;
 class AosSimulator : public Simulator {
 private:
 
-    void checkCollisions() override {
-#pragma omp for schedule(auto)
-        for (int i = 0; i < objs; i++) {
-            for (int j = 0; j < i; j++) {
-                if (Point::collide(points[i], points[j])) {
-                    points[i].killer = j;
-                    points[i].killed = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    void resolveCollisions()  {
-        for (int i =  objs-1; i >= 0;i--) {
-            if (points[i].killed) {
-                points[points[i].killer] += points[i];
-                objs--;
-                points[i] = points[objs];
-            } else {
-                points[i].update();
-            }
-        }
-        //while (((int) points.size()) != objs) points.pop_back();
-    }
-
+    // Simulator functions
 
     inline void checkBounds(Point &p) {
         if (p.pos.x < 0) {
@@ -66,6 +38,32 @@ private:
             p.pos.z = size;
             p.vel.z *= -1;
         }
+    }
+
+    void checkCollisions() override {
+#pragma omp for schedule(auto)
+        for (int i = 0; i < objs; i++) {
+            for (int j = 0; j < i; j++) {
+                if (Point::collide(points[i], points[j])) {
+                    points[i].killer = j;
+                    points[i].killed = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    void resolveCollisions() {
+        for (int i = objs - 1; i >= 0; i--) {
+            if (points[i].killed) {
+                points[points[i].killer] += points[i];
+                objs--;
+                points[i] = points[objs];
+            } else {
+                points[i].update();
+            }
+        }
+        //while (((int) points.size()) != objs) points.pop_back();
     }
 
 public:
@@ -100,7 +98,7 @@ public:
         resolveCollisions();
         for (auto l = 0; l < iterations; l++) {
 #pragma omp parallel default(none)
-        {
+            {
 #pragma omp for schedule(static)
                 for (int i = 0; i < objs; i++) {
                     for (int j = 0; j < objs; j++) {
@@ -113,20 +111,17 @@ public:
                     checkBounds(points[i]);
                 }
                 checkCollisions();
-
-        };
-        resolveCollisions();
-        //checkCollisions2();
+            };
+            resolveCollisions();
         }
     }
 };
-
 
 
 inline std::ostream &operator<<(std::ostream &os, const AosSimulator &s) {
     os.precision(3);
     os << fixed;
     os << s.size << ' ' << s.dt << ' ' << s.objs << '\n';
-    for (auto i=0; i<s.objs;i++) os << s.points[i] << '\n';
+    for (auto i = 0; i < s.objs; i++) os << s.points[i] << '\n';
     return os;
 }

@@ -1,6 +1,3 @@
-//
-// Created by Usuario on 10/12/2021.
-//
 
 // Imports
 #include "Simulator.hpp"
@@ -11,37 +8,55 @@ using namespace std;
 
 class SoaSimulator : public Simulator {
 private:
+    // Point.cpp-like logic by index
 
-    void checkCollisions() override {
-#pragma omp for schedule(auto)
-        for (int i = 0; i < objs; i++) {
-            for (int j = 0; j < i; j++) {
-                if (collide(i, j)) {
-                    killer[i] = j;
-                    killed[i] = true;
-                    break;
-                }
-            }
+    inline void deletePoint(int i) {
+        pos[i] = pos[objs];
+        vel[i] = vel[objs];
+        mass[i] = mass[objs];
+        mass_inv[i] = mass_inv[objs];
+    }
+
+    inline void update(int i) {
+        if (updated[i]) {
+            mass_inv[i] = 1.0 / mass[i];
+            updated[i] = false;
         }
     }
 
-    void resolveCollisions()  {
-        for (int i =  objs-1; i >= 0;i--) {
-            if (killed[i]) {
-                vel[killer[i]] += vel[i];
-                mass[killer[i]] += mass[i];
-                if(!updated[killer[i]]) {updated[killer[i]]=true;}
-                objs--;
-                pos[i] = pos[objs];
-                vel[i] = vel[objs];
-                mass[i] = mass[objs];
-                mass_inv[i] = mass_inv[objs];
-            } else {
-                update(i);
-            }
-        }
-        //clean();
+    inline void addPoint(int i, int j) {
+        vel[i] += vel[j];
+        mass[i] += mass[j];
+        if (!updated[i]) { updated[i] = true; }
     }
+
+    inline void move(int i) {
+        vel[i] += (force[i] * (dt * mass_inv[i]));
+        force[i] = 0;
+        pos[i] += (vel[i] * dt);
+    }
+
+    inline void addForce(const int i, const int j) {
+        auto force_vec = (pos[j] - pos[i]);
+        auto force_vec_prod = force_vec.dotProduct();
+        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
+        force[i] += force_vec * ((G * mass[i] * mass[j]) / force_vec_prod);
+    }
+
+    inline bool collide(const int i, const int j) {
+        auto sumx = pos[i].x - pos[j].x;
+        sumx = sumx * sumx;
+        if (sumx >= 1) return false;
+        auto sumy = pos[i].y - pos[j].y;
+        sumy = sumy * sumy;
+        if (sumy >= 1) return false;
+        auto sumz = pos[i].z - pos[j].z;
+        sumz = sumz * sumz;
+        if (sumz >= 1) return false;
+        return (sumx + sumy + sumz) < 1;
+    }
+
+    // Simulator functions
 
     inline void checkBounds(int i) {
         if (pos[i].x < 0) {
@@ -70,68 +85,29 @@ private:
         }
     }
 
-    inline bool collide(const int i, const int j) {
-        auto sumx = pos[i].x-pos[j].x;
-        sumx = sumx*sumx;
-        if(sumx>=1) return false;
-        auto sumy = pos[i].y-pos[j].y;
-        sumy = sumy * sumy;
-        if(sumy>=1) return false;
-        auto sumz = pos[i].z-pos[j].z;
-        sumz = sumz * sumz;
-        if(sumz>=1) return false;
-        return (sumx+sumy+sumz) < 1;
-    }
 
-
-    inline void absorb(int i, int j) {
-        vel[i] += vel[j];
-        mass[i] += mass[j];
-        if(!updated[i]) {updated[i]=true;}
-        deletePoint(j);
-    }
-
-    inline void update(int i){
-        if(updated[i]){
-            mass_inv[i] = 1.0 / mass[i];
-            updated[i]=false;
+    void checkCollisions() override {
+#pragma omp for schedule(auto)
+        for (int i = 0; i < objs; i++) {
+            for (int j = 0; j < i; j++) {
+                if (collide(i, j)) {
+                    killer[i] = j;
+                    killed[i] = true;
+                    break;
+                }
+            }
         }
     }
 
-    inline void addForce(const int i, const int j) {
-        auto force_vec = (pos[j] - pos[i]);
-        auto force_vec_prod = force_vec.dotProduct();
-        force_vec_prod = force_vec_prod * sqrt(force_vec_prod);
-        force[i] += force_vec * ((G * mass[i] * mass[j]) / force_vec_prod);
-    }
-
-    inline void move(int i) {
-        vel[i] += (force[i] * (dt * mass_inv[i]));
-        force[i]=0;
-        pos[i] += (vel[i] * dt);
-    }
-
-    inline void deletePoint(int i) {
-        objs--;
-        pos[i] = pos[objs];
-        vel[i] = vel[objs];
-        mass[i] = mass[objs];
-        mass_inv[i] = mass_inv[objs];
-//        killed[i]=killed[objs];
-//        killer[i]=killer[objs];
-//        updated[i]=updated[objs];
-    }
-
-    inline void clean() {
-        while((int)pos.size()!=objs){
-            pos.pop_back();
-            vel.pop_back();
-            force.pop_back();
-            mass.pop_back();
-            mass_inv.pop_back();
-            killed.pop_back();
-            killer.pop_back();
-            updated.pop_back();
+    void resolveCollisions() {
+        for (int i = objs - 1; i >= 0; i--) {
+            if (killed[i]) {
+                addPoint(killer[i], i);
+                objs--;
+                deletePoint(i);
+            } else {
+                update(i);
+            }
         }
     }
 
@@ -181,7 +157,7 @@ public:
 #pragma omp for schedule(static)
                 for (int i = 0; i < objs; i++) {
                     for (int j = 0; j < objs; j++) {
-                        if (i != j) addForce(i,j);
+                        if (i != j) addForce(i, j);
                     }
                 }
 #pragma omp for schedule(static)
