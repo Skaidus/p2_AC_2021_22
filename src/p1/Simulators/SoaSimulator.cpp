@@ -14,7 +14,7 @@ private:
         for (unsigned int i = 0; i < objs; i++) {
             for (unsigned int j = i + 1; j < objs;) {
                 if (collide(i, j)) {
-                    absorb(i, j);
+                    addPoint(i, j);
                 } else {
                     j++;
                 }
@@ -54,7 +54,7 @@ private:
     }
 
 
-    inline void absorb(int i, int j) {
+    inline void addPoint(int i, int j) {
         vel[i] += vel[j];
         mass[i] += mass[j];
         mass_inv[i] = 1 / mass[i];

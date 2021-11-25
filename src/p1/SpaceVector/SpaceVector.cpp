@@ -26,8 +26,6 @@ public:
     }
 
 
-
-
     inline SpaceVector &operator-=(const SpaceVector v) {
         this->x -= v.x;
         this->y -= v.y;
@@ -48,7 +46,6 @@ public:
         z = s;
         return *this;
     }
-
 
 
     inline SpaceVector operator*(const double s) const {
