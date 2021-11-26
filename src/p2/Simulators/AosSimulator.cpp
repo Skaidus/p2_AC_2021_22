@@ -63,7 +63,6 @@ private:
                 points[i].update();
             }
         }
-        //while (((int) points.size()) != objs) points.pop_back();
     }
 
 public:

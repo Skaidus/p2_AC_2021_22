@@ -18,8 +18,9 @@ constexpr int N = 30;
 
 
 int main() {
-    vector<int> num_objects = {4000, 8000};
-    vector<int> num_iterations = {250, 500};
+    //vector<int> num_objects = {4000, 8000};
+    vector<int> num_objects = {16000};
+    vector<int> num_iterations = {250,500};
     int random_seed = 1;
     double time_step = 0.2;
     for (auto iter: num_iterations) {

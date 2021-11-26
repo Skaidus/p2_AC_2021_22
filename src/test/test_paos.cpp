@@ -10,10 +10,9 @@ using namespace std;
 constexpr int N = 30;
 
 int main() {
-//    vector<int> num_objects = {4000};
-//    vector<int> num_iterations = {250};
-    vector<int> num_objects = {4000, 8000};
-    vector<int> num_iterations = {250, 500};
+    //vector<int> num_objects = {4000, 8000};
+    vector<int> num_objects = {16000};
+    vector<int> num_iterations = {250,500};
     int random_seed = 1;
     //vector<int> num_threads = {8};
     vector<int> num_threads = {1, 2, 4, 8, 16};

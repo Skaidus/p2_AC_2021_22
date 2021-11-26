@@ -17,9 +17,9 @@ int main(int argc, char **argv) {
     // Exit if error
     if ((err = convertInput(argc, argv, args)) < 0) return err;
     // SOA experiment
-    auto soa = AosSimulator(args.num_objects, args.random_seed, args.size_enclosure, args.time_step);
-    init << soa << '\n';
+    auto aos = AosSimulator(args.num_objects, args.random_seed, args.size_enclosure, args.time_step);
+    init << aos << '\n';
     soa.run(args.num_iterations, 8);
-    final << soa << '\n';
+    final << aos << '\n';
     return 0;
 }
